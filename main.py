@@ -1,6 +1,12 @@
 import telebot
 from telebot import types
-from config import TG_TOKEN #import from confif.py, where is the bot token located
+from config import TG_TOKEN #import from config.py, where is the bot token located
+from telebot.types import Message
+
+#from collections import deque
+#previous_messages = deque(maxlen=10)
+
+previous_messages = set()
 
 token = TG_TOKEN
 bot = telebot.TeleBot(token)
@@ -14,50 +20,80 @@ markup_start.add(*[types.KeyboardButton(name) for name in ['Предложени
 markup_cancel = types.ReplyKeyboardMarkup(resize_keyboard=True)
 markup_cancel.add(types.KeyboardButton("Отмена"))
 
+def check_duplicate_messages(message: Message):
+    text = message.text
+
+    if text.lower() not in ['отмена', 'отзыв', 'вопрос', 'предложение', '/start']:
+        if text + f' {message.chat.id}' in previous_messages:
+            bot.delete_message(message.chat.id, message.message_id)
+            return False
+        else:
+            previous_messages.add(text + f' {message.chat.id}')
+            return True
+    else:
+        return True
+
 @bot.message_handler(commands=['start'])
 def start_message(message):
 
     bot.send_message(message.chat.id, "Привет. Выбери, что ты хочешь отправить", reply_markup=markup_start)
-    bot.send_photo(message.chat.id, 'https://i.imgur.com/3pVINt0.png', 'Чтобы Админ смог вам ответить - измените настройки приватности: Пересылка сообщений - все.')
+    bot.send_photo(message.chat.id, 'https://i.imgur.com/3pVINt0.png', 'Чтобы админ смог вам ответить - измените настройки приватности: Пересылка сообщений - все.')
 
 def forward_adm_fb(message):
+    if check_duplicate_messages(message):
+        if message.text.lower() == 'отмена':
+            bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
+        else:
+            print('->forward_adm_fb')
+            print('User text to admin')
+            print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
 
-    if message.text.lower() == 'отмена':
-        bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
+            msg = bot.forward_message(adm, message.chat.id, message.message_id)
+            bot.reply_to(msg,"🟢 Отзыв")
+            bot.send_message(message.chat.id, "🟩 Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
     else:
-        print('->forward_adm_fb')
-        print('User text to admin')
-        print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
 
-        msg = bot.forward_message(adm, message.chat.id, message.message_id)
-        bot.reply_to(msg,"🟢 Отзыв")
-        bot.send_message(message.chat.id, "Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
+        bot.send_message(message.chat.id, "🟥 Сообщение не было отправлено! Сработала анти-спам система. "
+                                          "Отправка однотипных сообщений запрещена. Выберите действие повторно.", reply_markup=markup_start)
+
 
 def forward_adm_qs(message):
 
-    if message.text.lower() == 'отмена':
-        bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
-    else:
-        print('->forward_adm_qs')
-        print('User text to admin')
-        print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
+    if check_duplicate_messages(message):
+        if message.text.lower() == 'отмена':
+            bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
+        else:
+            print('->forward_adm_qs')
+            print('User text to admin')
+            print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
 
-        msg = bot.forward_message(adm, message.chat.id, message.message_id)
-        bot.reply_to(msg,"🟡 Вопрос")
-        bot.send_message(message.chat.id, "Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
+            msg = bot.forward_message(adm, message.chat.id, message.message_id)
+            bot.reply_to(msg,"🟡 Вопрос")
+            bot.send_message(message.chat.id, "🟩 Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
+    else:
+
+        bot.send_message(message.chat.id, "🟥 Сообщение не было отправлено! Сработала анти-спам система. "
+                                          "Отправка однотипных сообщений запрещена. Выберите действие повторно.", reply_markup=markup_start)
 
 def forward_adm_sg(message):
 
-    if message.text.lower() == 'отмена':
-        bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
-    else:
-        print('->forward_adm_sg')
-        print('User text to admin')
-        print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
+    if check_duplicate_messages(message):
+        if message.text.lower() == 'отмена':
+            bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
+        else:
+            print('->forward_adm_sg')
+            print('User text to admin')
+            print(f'{message.chat.id} - User -> {adm} - Admin, text = {message.text}'), print()
 
-        msg = bot.forward_message(adm, message.chat.id, message.message_id)
-        bot.reply_to(msg,"🔴 Предложение")
-        bot.send_message(message.chat.id, "Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
+            msg = bot.forward_message(adm, message.chat.id, message.message_id)
+            bot.reply_to(msg,"🔴 Предложение")
+            bot.send_message(message.chat.id, "🟩 Сообщение было отправлено! Выбери, что ты хочешь отправить", reply_markup=markup_start)
+    else:
+
+        bot.send_message(message.chat.id, "🟥 Сообщение не было отправлено! Сработала анти-спам система. "
+                                          "Отправка однотипных сообщений запрещена. Выберите действие повторно.", reply_markup=markup_start)
+
+
 
 @bot.message_handler(content_types=['text'])
 def message(message):
@@ -92,6 +128,7 @@ def message(message):
 
     # если пишет Пользователь
     else:
+
         if message.text.lower() == 'отзыв':
 
             msg = bot.send_message(message.chat.id, 'Напиши свой отзыв', reply_markup=markup_cancel)
@@ -106,6 +143,10 @@ def message(message):
 
             msg = bot.send_message(message.chat.id, 'Напиши свое предложение', reply_markup=markup_cancel)
             bot.register_next_step_handler(msg, forward_adm_sg)
+
+        elif message.text.lower() == 'отмена':
+            bot.send_message(message.chat.id, "Возвращаемся назад...", reply_markup=markup_start)
+
 
 
 def main():
